@@ -1,1 +1,2 @@
-# portfolio
+# Welcome! 
+### I am a current MA Economics student at the University of Texas at Austin studying Machine Learning, Causal Inference, and Big Data/Data Mining. My analyses rely predominantly on R, although I am currently developing my skills in SQL and Python. Please look around for some examples of my recent work, and if you are looking to hire an Austin-based data analyst I can be reached at ajkemp98@gmail.com. 

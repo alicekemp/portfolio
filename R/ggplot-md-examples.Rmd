@@ -1,0 +1,376 @@
+---
+title: "Portfolio: ggplot and gganimate"
+author: "Alice Kemp"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+if (!("librarian" %in% rownames(utils::installed.packages()))) {
+  utils::install.packages("librarian")
+}
+librarian::shelf(
+  ggthemes,
+  tidyverse,
+  dplyr,
+  haven, 
+  stargazer, 
+  RColorBrewer,
+  here,
+  ggmap,
+  scales, 
+  ggridges,
+  viridis,
+  gganimate, 
+  gifski, 
+  future, 
+  geosphere,
+  maps, 
+  airportr, 
+  kable, 
+  kableExtra,
+  rsample,
+  caret,
+  modelr,
+  parallel,
+  foreach,
+  scales, 
+  transformr)
+
+my_theme = theme_minimal(base_family = "Arial Narrow", base_size = 12) +
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = rel(1.7)),
+        plot.subtitle = element_text(face = "plain", size = rel(1.3), color = "grey70"),
+        plot.caption = element_text(face = "italic", size = rel(0.7), 
+                                    color = "grey70", hjust = 0),
+        legend.title = element_text(face = "bold"),
+        strip.text = element_text(face = "bold", size = rel(1.1), hjust = 0),
+        axis.title = element_text(face = "bold"),
+        axis.title.x = element_text(margin = margin(t = 10), hjust = 0),
+        axis.title.y = element_text(margin = margin(r = 10), hjust = 1))
+```
+
+## **1) Data visualization: Flights at ABIA**
+
+Analyzing flight data from the ABIA airport in Austin, Texas, we investigate trends in airline consistency measured by the average net delay (arrival delay minus departure delay) by day of week. As observed in the figure below, the most consistent airlines were ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA). These airlines were the most unchanged across days and tended to have shorter tails in the positive net delay direction. On the other hand, the least consistent airlines included Atlantic Southeast Airlines (EV) and Northwest Airlines (NW), and Jetstream International (OH) which tended to have higher variation in net delays and larger right tails. 
+
+```{r abia, echo = FALSE}
+ABIA = read_csv(here("data/ABIA.csv"), show_col_types = FALSE) %>%
+  select(DayOfWeek, UniqueCarrier, ArrDelay, DepDelay, Origin, Dest) %>%
+  filter(Origin == "AUS") %>%
+  mutate(delay_total = ArrDelay - DepDelay,
+         DayOfWeek = recode(DayOfWeek, 
+                            "1"="Monday",
+                            "2"="Tuesday",
+                            "3"="Wednesday",
+                            "4"="Thursday",
+                            "5"="Friday",
+                            "6"="Saturday",
+                            "7"="Sunday"),
+         DayOfWeek = fct_relevel(DayOfWeek, 
+                                 "Monday", "Tuesday", "Wednesday", 
+                                 "Thursday", "Friday", "Saturday", 
+                                 "Sunday"))
+attach(ABIA)
+
+gganimate = ggplot(ABIA, aes(x=delay_total, y=UniqueCarrier, fill = stat(x))) +
+  geom_density_ridges_gradient(rel_min_height = 0.01, scale = 2, show.legend = FALSE) +
+  scale_fill_viridis(option = "plasma", alpha = 0.9, discrete = FALSE, direction= -1) + 
+  xlim(-40,100) + 
+  transition_states(DayOfWeek, transition_length = 1, state_length = 1) + 
+  labs(
+    title  = "ABIA Outbound Flights: Net delay by carrier",
+    subtitle = "Day of Week: {closest_state}",
+    caption = "The most consistent airlines are ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA), while net delays for \n Atlantic Southeast Airlines (EV) and Northwest Airlines (NW) tend to vary more between days.") + 
+  xlab("Net Delay (min)") + 
+  ylab("Carrier") + 
+  my_theme
+animate(gganimate)
+```
+
+## **2) Wrangling the Billboard Top 100** 
+The weekly Billboard Top 100 list has tracked the most popular songs and artists in the U.S. since 1958, compiling data points from radio airplays, audio sales, and streaming activity.   
+### **Part A**  
+
+|    	|                 **Performer**               |             **Song**            	      | **Count (weeks)** |
+|----	|:-----------------------------------------:	|:-------------------------------------:	|:---------------:	|
+| 1  	| Imagine Dragons                           	| "Radioactive"                         	| 87              	|
+| 2  	| AWOLNATION                                	| "Sail"                                	| 79              	|
+| 3  	| Jason Mraz                                	| "I'm Yours"                           	| 76              	|
+| 4  	| The Weeknd                                	| "Blinding Lights"                     	| 76              	|
+| 5  	| LeAnn Rimes                               	| "How Do I Live"                       	| 69              	|
+| 6  	| LMFAO Featuring Lauren Bennett & GoonRock 	| "Party Rock Anthem"                   	| 68              	|
+| 7  	| OneRepublic                               	| "Counting Stars"                      	| 68              	|
+| 8  	| Adele                                     	| "Rolling In The Deep"                 	| 65              	|
+| 9  	| Jewel                                     	| "Foolish Games/You Were Meant For Me" 	| 65              	|
+| 10 	| Carrie Underwood                          	| "Before He Cheats"                    	| 64              	
+|  
+*Caption:* Imagine Dragons' "Radioactive" is the most popular song with 87 total appearances on the Billboard Top 100 since its release in 2012, followed by AWOLNATION's 2011 hit "Sail" with a total of 79 weekly appearances. Jason Mraz's "I'm Yours", released in 2008, and The Weeknd's "Blinding Lights, recently released in 2020, tied for third place with 76 weekly appearances each.    
+```{r billboard_a, echo = FALSE, message = FALSE}
+# clean data and filter 
+billboard = read_csv(here(("data/billboard.csv")),show_col_types = FALSE) %>%
+  select(performer, song, year, week, week_position) %>%
+  write_csv(here("data/billboard_clean.csv")) %>%
+  group_by(performer, song) %>%
+  filter(year >= 1958) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count), .by_group = FALSE) 
+# table of top ten songs
+n = seq(1,10,1)
+billboard_topten = data.frame(n,billboard[1:10,]) 
+attach(billboard)
+```
+
+### **Part B**
+Th musical diversity of the Billboard 100 has increased over the few last decades, last peaking in 1966 when 832 unique songs appeared on the list. Diversity then dropped into the early 2000's before rising again to reach 804 distinct appearances on the Billboard 100 in 2020.  
+```{r billboard_b, echo=FALSE, warning=FALSE, message = FALSE}
+billboard_unique = read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
+  group_by(performer, song, year) %>%
+  filter(year != 1958, year != 2021) %>%
+  unite("performer_song", performer:song, sep = " - ", remove = TRUE) %>%
+  summarize(
+            unique_songs = n_distinct(performer_song)) %>%
+  arrange(desc(unique_songs)) 
+attach(billboard_unique)
+ggplot(billboard_unique, aes(x=year, y=unique_songs)) + 
+  geom_line(color = "mediumblue", alpha = 0.6, size = 1.0) + 
+  ylab("unique songs") + 
+  ggtitle('Unique Billboard Top 100 songs by year') + 
+  labs(caption = 'The number of unique songs on the Billboard Top 100 list peaked in the late 1960s, before dipping to a low in 2001. \n However, music diversity has been on the rise again with 2020 yielding over 800 unique songs on the Top 100.') + 
+  my_theme + 
+  theme(
+    plot.caption = element_text(hjust = 0))
+```
+
+
+### **Part C**
+There have been 19 artists who have had at least 30 songs appear on the Billboard Top 100 more than ten times since 1958. As of 2021, leading the lineup is Elton John with 52 songs followed by Madonna with 44 and Kenny Chesney with 42. 
+```{r billboard_c, echo=FALSE, message = FALSE}
+read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
+  group_by(performer, song) %>%
+  summarize(
+    nweeks = n()) %>%
+  filter(
+    nweeks>=10,
+    ) %>%
+  group_by(performer) %>%
+  summarize(nsongs = n()) %>%
+  filter(nsongs >= 30) %>%
+ggplot(aes(x=reorder(performer, +nsongs), y=nsongs)) + 
+  geom_col(fill = "orangered2", alpha = 0.9) + 
+  ylab("Ten Week Songs (>30)") + 
+  xlab("") + 
+  ggtitle('Billboard 100 Ten-Week Artists') + 
+  labs(caption = "There have been 19 artists with 30 or more songs on the Billboard 100 for ten or more weeks since \n 1958. Elton John leads the list with 52 songs followed by Madonna (44) and Kenny Chesney (42)") + 
+  my_theme + 
+  theme(
+    plot.caption = element_text(hjust = 0)) + 
+  coord_flip() 
+```
+
+
+## **3) Wrangling the Olympics**
+
+### **Part A**
+The 95th percentile of female Olympic medalists in the top 20 sports between 1924 and 2016 is 186 cm.   
+
+|                    	| **95th Percentile** 	|
+|--------------------	|---------------------	|
+| Female Height (cm) 	| 186.0               	|
+
+```{r olympics_a, echo=FALSE}
+olympics_female = read_csv(here("data/olympics_clean.csv"), show_col_types = FALSE) %>%
+  select(id, sex, height, event, year) %>%
+  filter(sex=="F") %>%
+  group_by(event)
+perc95 = quantile(olympics_female$height, 0.95)
+attach(olympics_female)
+```
+
+### **Part B** 
+The greatest variation in female medalists' height occurs in Women's Coxed Fours Rowing, where the average height is 173.3 cm with a standard deviation of 10.9 cm. Overall, Coxed Rowing events account for three out of the top five for most varied height distributions - this is due to the historically dramatic difference in optimal heights for crew rowers versus coxswains. 
+
+|                                       	| **Average Height (cm)** 	| **Standard Deviation (cm)** 	|
+|---------------------------------------	|:-----------------------:	|:---------------------------:	|
+| Rowing Women's Coxed Fours            	|          173.3          	|             10.9            	|
+| Women's Basketball                    	|          183.0          	|             9.7             	|
+| Rowing Women's Coxed Quadruple Sculls 	|          171.9          	|             9.2             	|
+| Rowing Women's Coxed Eights           	|          178.2          	|             8.7             	|
+| Swimming Women's 100 metres Butterfly 	|          173.2          	|             8.1             	|
+
+```{r olympics_b, echo = FALSE}
+olympics_partb = olympics_female %>%
+  group_by(event) %>%
+  summarize(
+    avg = mean(height),
+    sd = sd(height)) %>%
+  arrange(desc(sd)) %>%
+  top_n(5)
+```
+
+### **Part C**
+Looking at the average ages of Olympic swimmers over time, we observe that overall average age peaked in 1920 before falling until the 1976 Olympics. Since 1976, average age has steadily grown to reach 23.2 in 2016.  
+
+| **Year** 	| **Average Age** 	| **Difference** 	|
+|:--------:	|:---------------:	|:--------------:	|
+| 1900     	| 18.0            	| -              	|
+| 1904     	| 20.1            	| +2.1           	|
+| 1908     	| 22.0            	| +0.9           	|
+| 1912     	| 23.5            	| +1.5           	|
+| 1920     	| 26.0            	| +2.5           	|
+| 1924     	| 23.6            	| -2.4           	|
+| 1928     	| 23.5            	| -0.1           	|
+| 1932     	| 19.0            	| -4.5           	|
+| 1936     	| 21.0            	| +2.0           	|
+| 1948     	| 20.0            	| -1.0           	|
+| 1952     	| 20.1            	| +0.1           	|
+| 1956     	| 18.9            	| -1.2           	|
+| 1960     	| 18.6            	| -0.3           	|
+| 1964     	| 19.4            	| +0.8           	|
+| 1968     	| 19.2            	| -0.2           	|
+| 1972     	| 19.0            	| -0.2           	|
+| 1976     	| 18.5            	| -0.5           	|
+| 1980     	| 18.8            	| +0.3           	|
+| 1984     	| 19.8            	| +1.0           	|
+| 1988     	| 20.6            	| +0.8           	|
+| 1992     	| 21.0            	| +0.4           	|
+| 1996     	| 22.0            	| +1.0           	|
+| 2000     	| 22.5            	| +0.5           	|
+| 2004     	| 22.4            	| -0.1           	|
+| 2008     	| 22.9            	| +0.5           	|
+| 2012     	| 23.3            	| +0.4           	|
+| 2016     	| 23.2            	| -0.1           	|  
+
+```{r olympics_c, echo = FALSE}
+# average age across genders
+swim_avgage_df = data.frame(read_csv(here("data/olympics_clean.csv"), show_col_types = FALSE) %>%
+  filter(sport == "Swimming") %>%
+  group_by(year) %>%
+  summarize(avg_age = mean(age)) %>%
+  mutate(across(where(is.numeric), ~ round(., 1))))
+attach(swim_avgage_df)
+# split by gender
+olympics_ageyr = read_csv(here("data/olympics_clean.csv"),show_col_types = FALSE) %>%
+  filter(sport == "Swimming") %>%
+  group_by(year, sex) %>%
+  summarize(avg_age = mean(age))
+attach(olympics_ageyr)
+ggplot(data = olympics_ageyr, aes(x=year,y=avg_age, color = sex)) + 
+  geom_line(alpha = 0.7) +
+  geom_line(data = swim_avgage_df, aes(x=year,y=avg_age, color = "darkgrey"), linetype = "dotted", inherit.aes=FALSE) + 
+  scale_color_manual(values = c("M" = "mediumblue",
+                                "F"="violetred2")) + 
+  labs(title = "Average Age of Olympic Swimmers over Time",
+       caption = "After peaking in 1924, the average age of olympics swimmers has increased over time with female swimmers \n being youngswer than male swimmers on average. However, the difference in average age for males versus \n females has decreased over time, most notably equaling zero in the year 2000.") +
+  ylab("average age") + 
+  my_theme + 
+  theme(
+    plot.caption = element_text(hjust = 0))
+```
+
+
+## **4) K-nearest neighbors**
+The 350 trim level yields a higher optimal value of k, equal to 32. This may be due to the fact that there is less variance in the data for 350 trim models than for 65 AMG models. Thus, the 350 KNN model can optimize with a higher value of k (more neighbors, but lower sd) to minimize error as compared to the KNN model for the 65 AMG cars.    
+```{r sclass, echo = FALSE, warning = FALSE, message=FALSE}
+# Trim level: 350 
+sclass = read.csv("/Users/alicekemp/statistical-learning/stat-learning/Homework-1/data/sclass.csv") %>%
+  select(trim, mileage, price) %>%
+  filter(trim %in% c(350,"65 AMG"))
+attach(sclass)
+sclass350 = sclass %>%
+  filter(trim==350)
+
+# create train/test splits
+set.seed(123)
+sclass350_split = initial_split(sclass350, prop = 0.8)
+sclass350_train = training(sclass350_split)
+sclass350_test = testing(sclass350_split)
+
+# KNN models
+rmse_out350 = foreach(i=2:100, .combine='c') %do% {
+  # train the model and calculate RMSE on the test set
+  knn_model = knnreg(price ~ mileage, data=sclass350_train, k = i)
+  modelr::rmse(knn_model, sclass350_test)
+} 
+##### 
+# repeat for 65 AMG trim level 
+#####
+sclass65 = sclass %>%
+  filter(trim=="65 AMG")
+
+sclass65_split = initial_split(sclass65, prop = 0.8)
+sclass65_train = training(sclass65_split)
+sclass65_test = testing(sclass65_split)
+
+rmse_out65 = foreach(i=2:100, .combine='c') %do% {
+  knn_model = knnreg(price ~ mileage, data=sclass65_train, k = i)
+  rmse(knn_model, sclass65_test)} 
+
+# plot K vs. RMSE for both trim levels
+k_vals = seq(2,100,1)
+df = data.frame(k_vals, rmse_out350, rmse_out65) 
+ggplot(df) + 
+  geom_line(aes(x = k_vals, y = rmse_out350, color = "350"), size = 1.5, alpha = 0.8) + 
+  geom_line(aes(x = k_vals, y = rmse_out65, color = "65 AMG"), size = 1.5, alpha = 0.8) + 
+  scale_color_manual("",
+                     breaks = c("350", "65 AMG"),
+                     values = c("darkorange2","orangered2")) + 
+  my_theme + 
+  xlab("K") + 
+  ylab("RMSE") + 
+  labs(title = "KNN Model: K vs. RMSE") 
+
+#####
+# Trim level: 350
+#####
+
+# find optimal K (minimum RMSE)
+optimal_k = df %>%
+  select(k_vals, rmse_out350) %>%
+  arrange(rmse_out350) %>%
+  top_n(1)
+
+# attach predictions to the test df
+knn1 = knnreg(price ~ mileage, data=sclass350_train, k = 17)
+
+sclass350_test = sclass350_test %>%
+  mutate(price_pred = predict(knn1, sclass350_test))
+
+# plot data and KNN model fit 
+ggplot(data = sclass350) + 
+  geom_point(aes(x =  mileage, y = price), alpha=0.2) + 
+  geom_line(data = sclass350_test, aes(x = mileage, y = price_pred), color='darkorange2', size=1.5) +
+  my_theme + 
+  labs(
+    title = "Mercedes S Class: Mileage vs. Price",
+    subtitle = "Trim level: 350 | KNN Model (K=17)")
+
+#####
+# Trim level: 65 AMG
+#####
+# find optimal K (minimum RMSE) 
+optimal_k2 = df %>%
+  select(k_vals, rmse_out65) %>%
+  arrange(rmse_out65)
+# attach predictions to the test df
+knn2 = knnreg(price ~ mileage, data=sclass65_train, k = 16)
+
+sclass65_test = sclass65_test %>%
+  mutate(price_pred = predict(knn2, sclass65_test))
+
+ggplot(data = sclass65) + 
+  geom_point(data = sclass65, aes(x =  mileage, y = price), alpha=0.2) +
+  geom_line(data = sclass65_test, aes(x = mileage, y = price_pred), color='orangered2', size=1.5) +
+  my_theme + 
+  labs(
+    title = "Mercedes S Class: Mileage vs. Price",
+    subtitle = "Trim level: 65 AMG | KNN Model (K=16)") 
+
+```
+
+
+
+
+
+
+

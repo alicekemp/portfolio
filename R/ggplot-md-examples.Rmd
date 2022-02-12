@@ -55,7 +55,7 @@ my_theme = theme_minimal(base_family = "Arial Narrow", base_size = 12) +
 Analyzing flight data from the ABIA airport in Austin, Texas, we investigate trends in airline consistency measured by the average net delay (arrival delay minus departure delay) by day of week. As observed in the figure below, the most consistent airlines were ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA). These airlines were the most unchanged across days and tended to have shorter tails in the positive net delay direction. On the other hand, the least consistent airlines included Atlantic Southeast Airlines (EV) and Northwest Airlines (NW), and Jetstream International (OH) which tended to have higher variation in net delays and larger right tails. 
 
 ```{r abia, echo = FALSE}
-ABIA = read_csv(here("data/ABIA.csv"), show_col_types = FALSE) %>%
+ABIA = read_csv(here("R/data/ABIA.csv"), show_col_types = FALSE) %>%
   select(DayOfWeek, UniqueCarrier, ArrDelay, DepDelay, Origin, Dest) %>%
   filter(Origin == "AUS") %>%
   mutate(delay_total = ArrDelay - DepDelay,
@@ -108,9 +108,9 @@ The weekly Billboard Top 100 list has tracked the most popular songs and artists
 *Caption:* Imagine Dragons' "Radioactive" is the most popular song with 87 total appearances on the Billboard Top 100 since its release in 2012, followed by AWOLNATION's 2011 hit "Sail" with a total of 79 weekly appearances. Jason Mraz's "I'm Yours", released in 2008, and The Weeknd's "Blinding Lights, recently released in 2020, tied for third place with 76 weekly appearances each.    
 ```{r billboard_a, echo = FALSE, message = FALSE}
 # clean data and filter 
-billboard = read_csv(here(("data/billboard.csv")),show_col_types = FALSE) %>%
+billboard = read_csv(here(("R/data/billboard.csv")),show_col_types = FALSE) %>%
   select(performer, song, year, week, week_position) %>%
-  write_csv(here("data/billboard_clean.csv")) %>%
+  write_csv(here("R/data/billboard_clean.csv")) %>%
   group_by(performer, song) %>%
   filter(year >= 1958) %>%
   summarise(count = n()) %>%
@@ -124,7 +124,7 @@ attach(billboard)
 ### **Part B**
 Th musical diversity of the Billboard 100 has increased over the few last decades, last peaking in 1966 when 832 unique songs appeared on the list. Diversity then dropped into the early 2000's before rising again to reach 804 distinct appearances on the Billboard 100 in 2020.  
 ```{r billboard_b, echo=FALSE, warning=FALSE, message = FALSE}
-billboard_unique = read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
+billboard_unique = read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
   group_by(performer, song, year) %>%
   filter(year != 1958, year != 2021) %>%
   unite("performer_song", performer:song, sep = " - ", remove = TRUE) %>%
@@ -146,7 +146,7 @@ ggplot(billboard_unique, aes(x=year, y=unique_songs)) +
 ### **Part C**
 There have been 19 artists who have had at least 30 songs appear on the Billboard Top 100 more than ten times since 1958. As of 2021, leading the lineup is Elton John with 52 songs followed by Madonna with 44 and Kenny Chesney with 42. 
 ```{r billboard_c, echo=FALSE, message = FALSE}
-read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
+read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
   group_by(performer, song) %>%
   summarize(
     nweeks = n()) %>%
@@ -179,7 +179,7 @@ The 95th percentile of female Olympic medalists in the top 20 sports between 192
 | Female Height (cm) 	| 186.0               	|
 
 ```{r olympics_a, echo=FALSE}
-olympics_female = read_csv(here("data/olympics_clean.csv"), show_col_types = FALSE) %>%
+olympics_female = read_csv(here("R/data/olympics_clean.csv"), show_col_types = FALSE) %>%
   select(id, sex, height, event, year) %>%
   filter(sex=="F") %>%
   group_by(event)
@@ -243,14 +243,14 @@ Looking at the average ages of Olympic swimmers over time, we observe that overa
 
 ```{r olympics_c, echo = FALSE}
 # average age across genders
-swim_avgage_df = data.frame(read_csv(here("data/olympics_clean.csv"), show_col_types = FALSE) %>%
+swim_avgage_df = data.frame(read_csv(here("R/data/olympics_clean.csv"), show_col_types = FALSE) %>%
   filter(sport == "Swimming") %>%
   group_by(year) %>%
   summarize(avg_age = mean(age)) %>%
   mutate(across(where(is.numeric), ~ round(., 1))))
 attach(swim_avgage_df)
 # split by gender
-olympics_ageyr = read_csv(here("data/olympics_clean.csv"),show_col_types = FALSE) %>%
+olympics_ageyr = read_csv(here("R/data/olympics_clean.csv"),show_col_types = FALSE) %>%
   filter(sport == "Swimming") %>%
   group_by(year, sex) %>%
   summarize(avg_age = mean(age))
@@ -273,7 +273,7 @@ ggplot(data = olympics_ageyr, aes(x=year,y=avg_age, color = sex)) +
 The 350 trim level yields a higher optimal value of k, equal to 32. This may be due to the fact that there is less variance in the data for 350 trim models than for 65 AMG models. Thus, the 350 KNN model can optimize with a higher value of k (more neighbors, but lower sd) to minimize error as compared to the KNN model for the 65 AMG cars.    
 ```{r sclass, echo = FALSE, warning = FALSE, message=FALSE}
 # Trim level: 350 
-sclass = read.csv("/Users/alicekemp/statistical-learning/stat-learning/Homework-1/data/sclass.csv") %>%
+sclass = read_csv(here("R/data/sclass.csv"), show_col_types = FALSE) %>%
   select(trim, mileage, price) %>%
   filter(trim %in% c(350,"65 AMG"))
 attach(sclass)

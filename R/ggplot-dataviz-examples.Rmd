@@ -1,0 +1,288 @@
+---
+title: "Portfolio: ggplot and gganimate"
+author: "Alice Kemp"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+if (!("librarian" %in% rownames(utils::installed.packages()))) {
+  utils::install.packages("librarian")
+}
+librarian::shelf(
+  ggthemes,
+  tidyverse,
+  dplyr,
+  haven, 
+  stargazer, 
+  RColorBrewer,
+  here,
+  ggmap,
+  scales, 
+  ggridges,
+  viridis,
+  gganimate, 
+  gifski, 
+  future, 
+  geosphere,
+  maps, 
+  airportr, 
+  kable, 
+  kableExtra,
+  rsample,
+  caret,
+  modelr,
+  parallel,
+  foreach,
+  scales, 
+  transformr)
+
+my_theme = theme_minimal(base_family = "Arial Narrow", base_size = 12) +
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = rel(1.7)),
+        plot.subtitle = element_text(face = "plain", size = rel(1.3), color = "grey70"),
+        plot.caption = element_text(face = "italic", size = rel(0.7), 
+                                    color = "grey70", hjust = 0),
+        legend.title = element_text(face = "bold"),
+        strip.text = element_text(face = "bold", size = rel(1.1), hjust = 0),
+        axis.title = element_text(face = "bold"),
+        axis.title.x = element_text(margin = margin(t = 10), hjust = 0),
+        axis.title.y = element_text(margin = margin(r = 10), hjust = 1))
+
+my_scatter_theme = theme_gray(base_family = "Arial Narrow", base_size = 12) +
+  theme(
+        plot.title = element_text(face = "bold", size = rel(1.7)),
+        plot.subtitle = element_text(face = "plain", size = rel(1.0), color = "grey70"),
+        plot.caption = element_text(face = "italic", size = rel(0.7), 
+                                    color = "grey70", hjust = 0),
+        legend.title = element_text(face = "bold"),
+        axis.title = element_text(face = "bold"),
+        axis.title.x = element_text(margin = margin(t = 10), hjust = 0),
+        axis.title.y = element_text(margin = margin(r = 10), hjust = 1))
+
+```
+
+## **1) Data visualization: Flights at ABIA**
+
+Analyzing flight data from the ABIA airport in Austin, Texas, we investigate trends in airline consistency measured by the average net delay (arrival delay minus departure delay) by day of week. As observed in the figure below, the most consistent airlines were ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA). These airlines were the most unchanged across days and tended to have shorter tails in the positive net delay direction. On the other hand, the least consistent airlines included Atlantic Southeast Airlines (EV) and Northwest Airlines (NW), and Jetstream International (OH) which tended to have higher variation in net delays and larger right tails. 
+
+```{r abia, echo = FALSE}
+ABIA = read_csv(here("R/data/ABIA.csv"), show_col_types = FALSE) %>%
+  select(DayOfWeek, UniqueCarrier, ArrDelay, DepDelay, Origin, Dest) %>%
+  filter(Origin == "AUS") %>%
+  mutate(delay_total = ArrDelay - DepDelay,
+         DayOfWeek = recode(DayOfWeek, 
+                            "1"="Monday",
+                            "2"="Tuesday",
+                            "3"="Wednesday",
+                            "4"="Thursday",
+                            "5"="Friday",
+                            "6"="Saturday",
+                            "7"="Sunday"),
+         DayOfWeek = fct_relevel(DayOfWeek, 
+                                 "Monday", "Tuesday", "Wednesday", 
+                                 "Thursday", "Friday", "Saturday", 
+                                 "Sunday"))
+attach(ABIA)
+
+gganimate = ggplot(ABIA, aes(x=delay_total, y=UniqueCarrier, fill = stat(x))) +
+  geom_density_ridges_gradient(rel_min_height = 0.01, scale = 2, show.legend = FALSE) +
+  scale_fill_viridis(option = "plasma", alpha = 0.9, discrete = FALSE, direction= -1) + 
+  xlim(-40,100) + 
+  transition_states(DayOfWeek, transition_length = 1, state_length = 1) + 
+  labs(
+    title  = "ABIA Outbound Flights: Net delay by carrier",
+    subtitle = "Day of Week: {closest_state}",
+    caption = "The most consistent airlines are ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA), while net delays for \n Atlantic Southeast Airlines (EV) and Northwest Airlines (NW) tend to vary more between days.") + 
+  xlab("Net Delay (min)") + 
+  ylab("Carrier") + 
+  my_theme
+animate(gganimate)
+```
+
+## The Billboard Hot 100
+The musical diversity of the Billboard 100 has increased over the few last decades, last peaking in 1966 when 832 unique songs appeared on the list. Diversity then dropped into the early 2000's before rising again to reach 804 distinct appearances on the Billboard 100 in 2020.  
+```{r billboard_b, echo=FALSE, warning=FALSE, message = FALSE}
+billboard_unique = read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
+  group_by(performer, song, year) %>%
+  filter(year != 1958, year != 2021) %>%
+  unite("performer_song", performer:song, sep = " - ", remove = TRUE) %>%
+  summarize(
+            unique_songs = n_distinct(performer_song)) %>%
+  arrange(desc(unique_songs)) 
+attach(billboard_unique)
+ggplot(billboard_unique, aes(x=year, y=unique_songs)) + 
+  geom_line(color = "mediumblue", alpha = 0.6, size = 1.0) + 
+  ylab("unique songs") + 
+  ggtitle('Unique Billboard Top 100 songs by year') + 
+  labs(caption = 'The number of unique songs on the Billboard Top 100 list peaked in the late 1960s, before dipping to a low in 2001. \n However, music diversity has been on the rise again with 2020 yielding over 800 unique songs on the Top 100.') + 
+  my_theme + 
+  theme(
+    plot.caption = element_text(hjust = 0))
+```
+
+
+There have been 19 artists who have had at least 30 songs appear on the Billboard Top 100 more than ten times since 1958. As of 2021, leading the lineup is Elton John with 52 songs followed by Madonna with 44 and Kenny Chesney with 42. 
+```{r billboard_c, echo=FALSE, message = FALSE}
+read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
+  group_by(performer, song) %>%
+  summarize(
+    nweeks = n()) %>%
+  filter(
+    nweeks>=10,
+    ) %>%
+  group_by(performer) %>%
+  summarize(nsongs = n()) %>%
+  filter(nsongs >= 30) %>%
+ggplot(aes(x=reorder(performer, +nsongs), y=nsongs)) + 
+  geom_col(fill = "orangered2", alpha = 0.9) + 
+  ylab("Ten Week Songs (>30)") + 
+  xlab("") + 
+  ggtitle('Billboard 100 Ten-Week Artists') + 
+  labs(caption = "There have been 19 artists with 30 or more songs on the Billboard 100 for ten or more weeks since \n 1958. Elton John leads the list with 52 songs followed by Madonna (44) and Kenny Chesney (42)") + 
+  my_theme + 
+  theme(
+    plot.caption = element_text(hjust = 0)) + 
+  coord_flip() 
+```
+
+
+## **KNN Model**
+The 350 trim level yields a higher optimal value of k, equal to 32. This may be due to the fact that there is less variance in the data for 350 trim models than for 65 AMG models. Thus, the 350 KNN model can optimize with a higher value of k (more neighbors, but lower sd) to minimize error as compared to the KNN model for the 65 AMG cars.    
+```{r sclass, echo = FALSE, warning = FALSE, message=FALSE}
+# Trim level: 350 
+sclass = read_csv(here("R/data/sclass.csv"), show_col_types = FALSE) %>%
+  select(trim, mileage, price) %>%
+  filter(trim %in% c(350,"65 AMG"))
+attach(sclass)
+sclass350 = sclass %>%
+  filter(trim==350)
+
+# create train/test splits
+set.seed(123)
+sclass350_split = initial_split(sclass350, prop = 0.8)
+sclass350_train = training(sclass350_split)
+sclass350_test = testing(sclass350_split)
+
+# KNN models
+rmse_out350 = foreach(i=2:100, .combine='c') %do% {
+  # train the model and calculate RMSE on the test set
+  knn_model = knnreg(price ~ mileage, data=sclass350_train, k = i)
+  modelr::rmse(knn_model, sclass350_test)
+} 
+##### 
+# repeat for 65 AMG trim level 
+#####
+sclass65 = sclass %>%
+  filter(trim=="65 AMG")
+
+sclass65_split = initial_split(sclass65, prop = 0.8)
+sclass65_train = training(sclass65_split)
+sclass65_test = testing(sclass65_split)
+
+rmse_out65 = foreach(i=2:100, .combine='c') %do% {
+  knn_model = knnreg(price ~ mileage, data=sclass65_train, k = i)
+  rmse(knn_model, sclass65_test)} 
+
+# plot K vs. RMSE for both trim levels
+k_vals = seq(2,100,1)
+df = data.frame(k_vals, rmse_out350, rmse_out65) 
+ggplot(df) + 
+  geom_line(aes(x = k_vals, y = rmse_out350, color = "350"), size = 1.5, alpha = 0.8) + 
+  geom_line(aes(x = k_vals, y = rmse_out65, color = "65 AMG"), size = 1.5, alpha = 0.8) + 
+  scale_color_manual("",
+                     breaks = c("350", "65 AMG"),
+                     values = c("darkorange2","orangered2")) + 
+  my_theme + 
+  xlab("K") + 
+  ylab("RMSE") + 
+  labs(title = "KNN Model: K vs. RMSE") 
+
+#####
+# Trim level: 350
+#####
+
+# find optimal K (minimum RMSE)
+optimal_k = df %>%
+  select(k_vals, rmse_out350) %>%
+  arrange(rmse_out350) %>%
+  top_n(1)
+
+# attach predictions to the test df
+knn1 = knnreg(price ~ mileage, data=sclass350_train, k = 17)
+
+sclass350_test = sclass350_test %>%
+  mutate(price_pred = predict(knn1, sclass350_test))
+
+# plot data and KNN model fit 
+ggplot(data = sclass350) + 
+  geom_point(aes(x =  mileage, y = price), alpha=0.2) + 
+  geom_line(data = sclass350_test, aes(x = mileage, y = price_pred), color='darkorange2', size=1.5) +
+  my_theme + 
+  labs(
+    title = "Mercedes S Class: Mileage vs. Price",
+    subtitle = "Trim level: 350 | KNN Model (K=17)")
+
+#####
+# Trim level: 65 AMG
+#####
+# find optimal K (minimum RMSE) 
+optimal_k2 = df %>%
+  select(k_vals, rmse_out65) %>%
+  arrange(rmse_out65)
+# attach predictions to the test df
+knn2 = knnreg(price ~ mileage, data=sclass65_train, k = 16)
+
+sclass65_test = sclass65_test %>%
+  mutate(price_pred = predict(knn2, sclass65_test))
+
+ggplot(data = sclass65) + 
+  geom_point(data = sclass65, aes(x =  mileage, y = price), alpha=0.2) +
+  geom_line(data = sclass65_test, aes(x = mileage, y = price_pred), color='orangered2', size=1.5) +
+  my_theme + 
+  labs(
+    title = "Mercedes S Class: Mileage vs. Price",
+    subtitle = "Trim level: 65 AMG | KNN Model (K=16)") 
+
+```
+
+
+##**CapMetro Passenger Analysis in Austin, Texas**
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+capmetro_UT = read_csv(here(("R/data/capmetro_UT_raw.csv")), show_col_types = FALSE) 
+capmetro_UT %>%
+  mutate(across(day_of_week, factor, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")),
+         across(month, factor, levels = c("Sep", "Oct", "Nov"))) %>%
+  group_by(hour_of_day, day_of_week, month) %>%
+  summarize(avg_boardings = mean(boarding)) %>%
+ggplot(aes(x=hour_of_day,y=avg_boardings, color = month)) + 
+  geom_line() + 
+  facet_wrap(vars(day_of_week),nrow=2) + 
+  scale_color_manual(values = c("steelblue1", "royalblue1", "mediumblue")) +
+  my_theme + 
+  ggtitle("Capmetro UT average boardings",
+          subtitle = "Passenger demand is highest on weekdays and peaks during the evening between 4:00 and 6:00 pm") + 
+    xlab("Hour of Day") + 
+    ylab("Average Boardings")
+
+capmetro_UT %>%
+  separate(col = timestamp, into = c("date", "hourwindow"), sep = "\\ ") %>%
+  group_by(temperature, weekend) %>%
+ggplot(aes(x=temperature,y=boarding, color = weekend)) + 
+  geom_point(alpha = 0.6, size = 0.9) + 
+  facet_wrap(vars(hour_of_day),nrow=4) + 
+  scale_color_manual(values=c("steelblue2","mediumblue")) + 
+  my_scatter_theme + 
+  ggtitle("Temperature vs. Capmetro UT boardings by hour",
+          subtitle = "Passenger demand is higher on weekdays, peaking during evening commute periods. \n Temperature appears to have little impact on number of passenger boardings") + 
+  labs(
+    x = "Temperature (°F)",
+    y = "Total Boardings"
+  )
+```
+
+
+
+
+
+

@@ -4,7 +4,7 @@ author: "Alice Kemp"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, echo = FALSE}
 librarian::shelf(
   ROSE,
   tidyverse,
@@ -42,6 +42,21 @@ library(rsample)
 library(foreach)
 library(parallel)
 library(purrr)
+## color palette brewing
+plasma = c("darkorange2", "coral2", "orangered2", "violetred2", "magenta4", "purple3", "mediumblue")
+## my theme
+
+my_theme = theme_minimal(base_family = "Arial Narrow", base_size = 12) +
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = rel(1.7)),
+        plot.subtitle = element_text(face = "plain", size = rel(1.0), color = "grey70"),
+        plot.caption = element_text(face = "italic", size = rel(0.7), 
+                                    color = "grey70", hjust = 0),
+        legend.title = element_text(face = "bold"),
+        strip.text = element_text(face = "bold", size = rel(1.1), hjust = 0),
+        axis.title = element_text(face = "bold"),
+        axis.title.x = element_text(margin = margin(t = 10), hjust = 0),
+        axis.title.y = element_text(margin = margin(r = 10), hjust = 1))
 ```
 
 # Predicting residential house prices in Saratoga County, New York 
@@ -49,16 +64,6 @@ library(purrr)
   The dataset used in this report covers housing prices and 15 characteristics for over 1,700 houses in the Saratoga County residential market in the year 2006. Characteristics include lot size, age, land value, living area, percent of neighborhood that graduated college, bedrooms, fireplaces, bathrooms, rooms, type of heating, type of fuel used for heating, type of sewer system, and whether the property was waterfront, new construction, and had central air conditioning. To better compare performance across models, the categorical variables were converted to binary dummy variables. The data was then normalized in order to build the K-nearest neighbors model. 
    
 ```{r, message=FALSE, warning=FALSE}
-library(glmnet)
-library(data.table)
-library(tidyverse)
-library(ggplot2)
-library(caret)
-library(modelr)
-library(rsample)
-library(foreach)
-library(parallel)
-library(purrr)
 data(SaratogaHouses)
 
 # normalize data and create dummies
@@ -153,7 +158,7 @@ This analysis investigates credit default history of 1,000 customers of a German
 
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
-german_credit = read_csv(here(("data/german_credit_raw.csv")), show_col_types = FALSE)
+german_credit = read_csv(here(("R/data/german_credit_raw.csv")), show_col_types = FALSE)
 
 default_history = german_credit %>%
   mutate(across(history, factor, levels = c("terrible", "poor", "good"))) %>%
@@ -181,7 +186,7 @@ Looking at the above probabilities, it is clear that the method of retrospective
 The data in this analysis includes 45,000 data points from reservations at a major U.S.-based hotel chain. The variable of interest that we are attempting to predict is whether or not a particular booking includes children, based on 21 features including hotel type, meal type, customer demographics, number of adults, repeated guests, and other reservation attributes. 
 
 ```{r, message = FALSE, warning=FALSE}
-hotels = read_csv(here(("data/hotels_dev_raw.csv")), show_col_types = FALSE)
+hotels = read_csv(here(("R/data/hotels_dev_raw.csv")), show_col_types = FALSE)
 set.seed(13)
 hotels_split = initial_split(hotels, 0.8)
 hotels_train = training(hotels_split)
@@ -211,7 +216,7 @@ proc = roc(y_test ~ lasso_predict, plot = TRUE, print.auc=TRUE, col = "mediumblu
 
 
 ### Model Validation
-hotels_val = read_csv(here(("data/hotels_val_raw.csv")))
+hotels_val = read_csv(here(("R/data/hotels_val_raw.csv")))
 library(naivebayes)
 trctrl = trainControl(method = "cv", number = 20, savePredictions=TRUE)
 nb_fit = train(factor(children) ~ market_segment + adults + customer_type + is_repeated_guest, data = hotels_val, method = "naive_bayes", trControl=trctrl, tuneLength = 0)

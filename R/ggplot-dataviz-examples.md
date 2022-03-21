@@ -40,5 +40,5 @@ with a higher value of k (more neighbors, but lower sd) to minimize
 error as compared to the KNN model for the 65 AMG cars.  
 ![](ggplot-dataviz-examples_files/figure-gfm/sclass-1.png)<!-- -->![](ggplot-dataviz-examples_files/figure-gfm/sclass-2.png)<!-- -->![](ggplot-dataviz-examples_files/figure-gfm/sclass-3.png)<!-- -->
 
-##**CapMetro Passenger Analysis in Austin, Texas**
+\##**CapMetro Passenger Analysis in Austin, Texas**
 ![](ggplot-dataviz-examples_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->![](ggplot-dataviz-examples_files/figure-gfm/unnamed-chunk-1-2.png)<!-- -->

@@ -104,7 +104,7 @@ gganimate
 ## The Billboard Hot 100
 The musical diversity of the Billboard 100 has increased over the few last decades, last peaking in 1966 when 832 unique songs appeared on the list. Diversity then dropped into the early 2000's before rising again to reach 804 distinct appearances on the Billboard 100 in 2020.  
 ```{r billboard_b, echo=FALSE, warning=FALSE, message = FALSE}
-billboard_unique = read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
+billboard_unique = read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
   group_by(performer, song, year) %>%
   filter(year != 1958, year != 2021) %>%
   unite("performer_song", performer:song, sep = " - ", remove = TRUE) %>%
@@ -125,7 +125,7 @@ ggplot(billboard_unique, aes(x=year, y=unique_songs)) +
 
 There have been 19 artists who have had at least 30 songs appear on the Billboard Top 100 more than ten times since 1958. As of 2021, leading the lineup is Elton John with 52 songs followed by Madonna with 44 and Kenny Chesney with 42. 
 ```{r billboard_c, echo=FALSE, message = FALSE}
-read_csv(here("R/data/billboard_clean.csv"),show_col_types = FALSE) %>%
+read_csv(here("data/billboard_clean.csv"),show_col_types = FALSE) %>%
   group_by(performer, song) %>%
   summarize(
     nweeks = n()) %>%
@@ -152,7 +152,7 @@ ggplot(aes(x=reorder(performer, +nsongs), y=nsongs)) +
 The 350 trim level yields a higher optimal value of k, equal to 32. This may be due to the fact that there is less variance in the data for 350 trim models than for 65 AMG models. Thus, the 350 KNN model can optimize with a higher value of k (more neighbors, but lower sd) to minimize error as compared to the KNN model for the 65 AMG cars.    
 ```{r sclass, echo = FALSE, warning = FALSE, message=FALSE}
 # Trim level: 350 
-sclass = read_csv(here("R/data/sclass.csv"), show_col_types = FALSE) %>%
+sclass = read_csv(here("data/sclass.csv"), show_col_types = FALSE) %>%
   select(trim, mileage, price) %>%
   filter(trim %in% c(350,"65 AMG"))
 attach(sclass)
@@ -250,7 +250,7 @@ ggplot(data = sclass65) +
 
 ##**CapMetro Passenger Analysis in Austin, Texas**
 ```{r, echo = FALSE, warning = FALSE, message = FALSE}
-capmetro_UT = read_csv(here(("R/data/capmetro_UT_raw.csv")), show_col_types = FALSE) 
+capmetro_UT = read_csv(here(("data/capmetro_UT_raw.csv")), show_col_types = FALSE) 
 capmetro_UT %>%
   mutate(across(day_of_week, factor, levels = c("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")),
          across(month, factor, levels = c("Sep", "Oct", "Nov"))) %>%

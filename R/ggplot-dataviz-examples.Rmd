@@ -67,7 +67,7 @@ my_scatter_theme = theme_gray(base_family = "Arial Narrow", base_size = 12) +
 Analyzing flight data from the ABIA airport in Austin, Texas, we investigate trends in airline consistency measured by the average net delay (arrival delay minus departure delay) by day of week. As observed in the figure below, the most consistent airlines were ExpressJet (XE), Southwest Airlines (WN), and American Airlines (AA). These airlines were the most unchanged across days and tended to have shorter tails in the positive net delay direction. On the other hand, the least consistent airlines included Atlantic Southeast Airlines (EV) and Northwest Airlines (NW), and Jetstream International (OH) which tended to have higher variation in net delays and larger right tails. 
 
 ```{r abia, echo = FALSE}
-ABIA = read_csv(here("R/data/ABIA.csv"), show_col_types = FALSE) %>%
+ABIA = read_csv(here("data/ABIA.csv"), show_col_types = FALSE) %>%
   select(DayOfWeek, UniqueCarrier, ArrDelay, DepDelay, Origin, Dest) %>%
   filter(Origin == "AUS") %>%
   mutate(delay_total = ArrDelay - DepDelay,
@@ -98,6 +98,7 @@ gganimate = ggplot(ABIA, aes(x=delay_total, y=UniqueCarrier, fill = stat(x))) +
   ylab("Carrier") + 
   my_theme
 animate(gganimate)
+gganimate
 ```
 
 ## The Billboard Hot 100

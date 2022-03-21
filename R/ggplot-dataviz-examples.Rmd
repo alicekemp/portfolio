@@ -1,7 +1,7 @@
 ---
 title: "Portfolio: ggplot and gganimate"
 author: "Alice Kemp"
-output: github_document
+output: md_document
 ---
 
 ```{r setup, include=FALSE}

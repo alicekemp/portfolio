@@ -237,7 +237,7 @@ demographics, number of adults, repeated guests, and other reservation
 attributes.
 
 ``` r
-hotels = read_csv(here(("R/data/hotels_dev_raw.csv")), show_col_types = FALSE)
+hotels = read_csv(here(("data/hotels_dev_raw.csv")), show_col_types = FALSE)
 set.seed(13)
 hotels_split = initial_split(hotels, 0.8)
 hotels_train = training(hotels_split)
@@ -277,7 +277,7 @@ proc = roc(y_test ~ lasso_predict, plot = TRUE, print.auc=TRUE, col = "mediumblu
 
 ``` r
 ### Model Validation
-hotels_val = read_csv(here(("R/data/hotels_val_raw.csv")))
+hotels_val = read_csv(here(("data/hotels_val_raw.csv")))
 library(naivebayes)
 trctrl = trainControl(method = "cv", number = 20, savePredictions=TRUE)
 nb_fit = train(factor(children) ~ market_segment + adults + customer_type + is_repeated_guest, data = hotels_val, method = "naive_bayes", trControl=trctrl, tuneLength = 0)
